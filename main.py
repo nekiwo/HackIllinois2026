@@ -1,30 +1,44 @@
 import cv2 as cv
 import numpy as np
-
+import configobj
+import sys
 from tag_detector import TagDetector
 from line_detector import LineDetector
 
 # Config
 DEBUG = True
-# PS Eye
-camera_mat = np.matrix([
-    [1, 0, 0],
-    [0, 1, 1],
-    [0, 0, 1]
-])
-dist_coeffs = np.matrix([1, 1, 1, 1, 1])
-
 # Constants
 INCH = 2.54 # Inches in cm
 
-cap = cv.VideoCapture(0)
+if len(sys.argv) == 1:
+    print("First argument must be config path. Exiting...")
+    exit()
 
+config = configobj.ConfigObj(sys.argv[1])
+detector = TagDetector()
+line_detector = LineDetector()
+
+camera_mat = np.matrix([
+    [config["f_x"], 0, config["c_x"]],
+    [0, config["f_y"], config["c_y"]],
+    [0, 0, 1]
+], dtype=np.float32)
+dist_coeffs = np.matrix([
+    config["k_1"], config["k_2"], config["p_1"], config["p_2"], config["k_3"]
+], dtype = np.float32)
+width = int(config["width"])
+height = int(config["height"])
+
+cap = cv.VideoCapture(0)
 if not cap.isOpened():
     print("Camera cannot be opened. Exiting...")
     exit()
 
-detector = TagDetector()
-line_detector = LineDetector()
+def show_image(frame):
+    cv.imshow("HackIllinois", frame)
+    if cv.waitKey(1) == ord("q"):
+        return True
+    return False
 
 while True:
     ret, frame = cap.read()
@@ -44,10 +58,7 @@ while True:
     lines = line_detector.detect(frame,gray)
 
     if len(markers_corners) == 0:
-        cv.imshow("HackIllinois", edges)
-        if lines is not None:
-            cv.imshow("Line segment detector", lines)
-        if cv.waitKey(1) == ord("q"):
+        if show_image(frame):
             break
         continue
 
@@ -55,14 +66,18 @@ while True:
     marker_side_vec = marker_corners[0] - marker_corners[1]
 
     pixels_per_cm = np.linalg.norm(marker_side_vec) / (6.5 * INCH)
-    print(pixels_per_cm)
 
-    pose = detector.estimate_pose(marker_corners, camera_mat, dist_coeffs)
-    
-    cv.aruco.drawDetectedMarkers(edges, markers_corners)
+    flatten_transform = cv.getAffineTransform(marker_corners[:-1], np.matrix([
+        [width / 2 - 50, height / 2 + 50],
+        [width / 2 + 50, height / 2 + 50],
+        [width / 2 + 50, height / 2 - 50]
+    ], dtype = np.float32))
+    frame = cv.warpAffine(frame, flatten_transform, (width, height))
 
-    cv.imshow("HackIllinois", edges)
-    if cv.waitKey(1) == ord("q"):
+    if DEBUG:
+        cv.aruco.drawDetectedMarkers(frame, markers_corners)
+
+    if show_image(frame):
         break
 
 cap.release()
