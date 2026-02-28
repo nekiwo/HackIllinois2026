@@ -1,5 +1,7 @@
 import cv2 as cv
-import numpy as np
+import numpy as n
+
+from tag_detector import TagDetector
 
 cap = cv.VideoCapture(0)
 
@@ -7,18 +9,23 @@ if not cap.isOpened():
     print("Camera cannot be opened. Exiting...")
     exit()
 
+detector = TagDetector()
+
 while True:
-    # Capture frame-by-frame
     ret, frame = cap.read()
  
-    # if frame is read correctly ret is True
     if not ret:
         print("Stream cannot be opened.")
         break
 
-    # Our operations on the frame come here
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    # Display the resulting frame
-    cv.imshow('frame', gray)
-    if cv.waitKey(1) == ord('q'):
+
+    ids, marker_corners = detector.detect(frame)
+    print(ids)
+
+    cv.imshow("HackIllinois", frame)
+    if cv.waitKey(1) == ord("q"):
         break
+
+cap.release()
+cv.destroyAllWindows()
