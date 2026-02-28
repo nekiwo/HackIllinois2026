@@ -10,7 +10,7 @@ import time
 DEBUG = True
 TAG_PERCENT = 0.20
 PADDING_PERCENT = 0.03
-SUBSAMPLE_PERCENT = 1.0
+SUBSAMPLE_PERCENT = 0.2
 # Constants
 INCH = 2.54 # Inches in cm
 
@@ -32,7 +32,7 @@ if config_path == None:
 
 config = configobj.ConfigObj(config_path)
 detector = TagDetector()
-line_detector = LineDetector()
+line_detector = LineDetector(int(config["canny_th1"]), int(config["canny_th2"]), int(config["canny_aperture"]))
 
 camera_mat = np.matrix([
     [config["f_x"], 0, config["c_x"]],
@@ -68,11 +68,11 @@ def show_image(frame, name="HackIllinois"):
 
 def pipeline(frame):
     ids, markers_corners = detector.detect(frame)
-
     if len(markers_corners) == 0:
         show_image(frame)
         return
 
+    print("Detected Tag \n")
     marker_corners = markers_corners[0][0]
     marker_side_vec = marker_corners[0] - marker_corners[1]
 
@@ -88,9 +88,12 @@ def pipeline(frame):
     frame = cv.warpAffine(frame, flatten_transform, (height, width))
     frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
 
+    print("Frame Transformations \n")
+
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     frame = cv.Canny(gray, 50, 150, apertureSize = 3)
     lines = line_detector.detect(frame, gray)
+    print("Lines Detected \n")
 
     if DEBUG:
         if lines is not None:
