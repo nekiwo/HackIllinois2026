@@ -12,11 +12,23 @@ TAG_PADDING_PIXELS = 25
 # Constants
 INCH = 2.54 # Inches in cm
 
-if len(sys.argv) == 1:
-    print("First argument must be config path. Exiting...")
+config_path = None
+file_stream = None
+if len(sys.argv) > 2:
+    for arg_i in range(len(sys.argv) - 1):
+        arg = sys.argv[arg_i]
+        arg_next = sys.argv[arg_i + 1]
+        if arg == "--config" or arg == "-c":
+            config_path = arg_next
+        elif arg == "--file-stream" or arg == "-f":
+            file_stream = arg_next
+
+
+if config_path == None:
+    print("Specify the `--config` flag. Exiting...")
     exit()
 
-config = configobj.ConfigObj(sys.argv[1])
+config = configobj.ConfigObj(config_path)
 detector = TagDetector()
 line_detector = LineDetector()
 
@@ -31,9 +43,14 @@ dist_coeffs = np.matrix([
 width = int(config["width"])
 height = int(config["height"])
 
-cap = cv.VideoCapture(0)
-if not cap.isOpened():
-    print("Camera cannot be opened. Exiting...")
+cap = None
+if file_stream == None:
+    cap = cv.VideoCapture(0)
+else:
+    cap = cv.VideoCapture(file_stream)
+
+if cap == None or not cap.isOpened():
+    print("Error starting stream. Exiting...")
     exit()
 
 def show_image(frame, name="HackIllinois"):
@@ -48,13 +65,6 @@ while True:
     if not ret:
         print("Stream cannot be opened.")
         break
-
-    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    edges = cv.Canny(gray, 50, 150, apertureSize = 3)
-    lines = line_detector.detect(frame,gray)
-
-    if lines is not None:
-        show_image(lines, "Line Detection")
 
     ids, markers_corners = detector.detect(frame)
 
@@ -78,8 +88,17 @@ while True:
     frame = cv.warpAffine(frame, flatten_transform, (height, width))
     frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
 
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    # edges = cv.Canny(gray, 50, 150, apertureSize = 3)
+    lines = line_detector.detect(frame, gray)
+
+
     if DEBUG:
-        cv.aruco.drawDetectedMarkers(frame, markers_corners)
+        cv.aruco.drawDetectedMarkers(lines, markers_corners)
+        if lines is not None:
+            if show_image(lines):
+                break
+            continue
 
     if show_image(frame):
         break
