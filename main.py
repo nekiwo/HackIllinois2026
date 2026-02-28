@@ -37,10 +37,16 @@ while True:
 
     edges = cv.Canny(gray, 50, 150, apertureSize = 3)
 
+    line_detector.detect(frame,edges)
+
     ids, markers_corners = detector.detect(frame)
+
+    lines = line_detector.detect(frame,gray)
 
     if len(markers_corners) == 0:
         cv.imshow("HackIllinois", edges)
+        if lines is not None:
+            cv.imshow("Line segment detector", lines)
         if cv.waitKey(1) == ord("q"):
             break
         continue

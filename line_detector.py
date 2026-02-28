@@ -2,10 +2,10 @@ import cv2 as cv
 import numpy as np
 
 class LineDetector:
-    def detect(self, img, edges):
-        lines = cv.HoughLinesP(edges,1,np.pi/180,100,minLineLength=100,maxLineGap=10)
+    fld = cv.ximgproc.createFastLineDetector(canny_th1 = 50.0, canny_th2 = 150.0, canny_aperture_size = 3, do_merge = True)
+    def detect(self, frame, gray):
+        lines = self.fld.detect(gray)
         if lines is None:
             return
-        for line in lines:
-            x1,y1,x2,y2 = line[0]
-            cv.line(img,(x1,y1),(x2,y2),(0,255,0),2)
+        draw_frame = self.fld.drawSegments(frame, lines)
+        return draw_frame
