@@ -22,7 +22,7 @@ class ShapeSimplifier:
     def get_dist_2p(self, p1, p2):
         return np.linalg.norm(p2 - p1)
 
-    def simplify(self, lines, arcs):
+    def simplify(self, lines):
         while True:
             has_changes = False
             for line_i, line in enumerate(lines):
@@ -50,4 +50,4 @@ class ShapeSimplifier:
             if not has_changes:
                 break
 
-        return lines, arcs
+        return lines
