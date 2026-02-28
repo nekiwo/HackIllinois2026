@@ -4,6 +4,7 @@ import configobj
 import sys
 from tag_detector import TagDetector
 from line_detector import LineDetector
+import time
 
 # Config
 DEBUG = True
@@ -40,38 +41,33 @@ camera_mat = np.matrix([
 dist_coeffs = np.matrix([
     config["k_1"], config["k_2"], config["p_1"], config["p_2"], config["k_3"]
 ], dtype = np.float32)
+
 width = int(config["width"])
 height = int(config["height"])
 
 cap = None
+is_image = False
 if file_stream == None:
     cap = cv.VideoCapture(0)
 else:
-    cap = cv.VideoCapture(file_stream)
+    if file_stream.find(".jpg") != -1 or file_stream.find(".png") != -1:
+        is_image = True
+    else:
+        cap = cv.VideoCapture(file_stream)
 
-if cap == None or not cap.isOpened():
+if not is_image and (cap == None or not cap.isOpened()):
     print("Error starting stream. Exiting...")
     exit()
 
 def show_image(frame, name="HackIllinois"):
     cv.imshow(name, frame)
-    if cv.waitKey(1) == ord("q"):
-        return True
-    return False
 
-while True:
-    ret, frame = cap.read()
- 
-    if not ret:
-        print("Stream cannot be opened.")
-        break
-
+def pipeline(frame):
     ids, markers_corners = detector.detect(frame)
 
     if len(markers_corners) == 0:
-        if show_image(frame):
-            break
-        continue
+        show_image(frame)
+        return
 
     marker_corners = markers_corners[0][0]
     marker_side_vec = marker_corners[0] - marker_corners[1]
@@ -92,16 +88,30 @@ while True:
     # edges = cv.Canny(gray, 50, 150, apertureSize = 3)
     lines = line_detector.detect(frame, gray)
 
-
     if DEBUG:
-        cv.aruco.drawDetectedMarkers(lines, markers_corners)
         if lines is not None:
-            if show_image(lines):
-                break
-            continue
+            cv.aruco.drawDetectedMarkers(lines, markers_corners)
+            show_image(lines)
+            return
 
-    if show_image(frame):
-        break
+    show_image(frame)
+
+if not is_image:
+    while True:
+        ret, frame = cap.read()
+    
+        if not ret:
+            print("Stream cannot be opened.")
+            break
+
+        pipeline(frame)
+        if cv.waitKey(1) == ord("q"):
+            break
+else:
+    frame = cv.imread(file_stream)
+    pipeline(frame)
+    while cv.waitKey(1) != ord("q"):
+        continue
 
 cap.release()
 cv.destroyAllWindows()
