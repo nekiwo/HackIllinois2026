@@ -34,8 +34,8 @@ if not cap.isOpened():
     print("Camera cannot be opened. Exiting...")
     exit()
 
-def show_image(frame):
-    cv.imshow("HackIllinois", frame)
+def show_image(frame, name="HackIllinois"):
+    cv.imshow(name, frame)
     if cv.waitKey(1) == ord("q"):
         return True
     return False
@@ -51,11 +51,12 @@ while True:
 
     edges = cv.Canny(gray, 50, 150, apertureSize = 3)
 
-    line_detector.detect(frame,edges)
+    lines = line_detector.detect(frame,gray)
+
+    if lines is not None:
+        show_image(lines, "Line Detection")
 
     ids, markers_corners = detector.detect(frame)
-
-    lines = line_detector.detect(frame,gray)
 
     if len(markers_corners) == 0:
         if show_image(frame):
