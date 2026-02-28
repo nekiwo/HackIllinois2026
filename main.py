@@ -5,6 +5,7 @@ import sys
 from dxf_converter import DXFConverter
 from tag_detector import TagDetector
 from line_detector import LineDetector
+from shape_simplifier import ShapeSimplifier
 
 # Config
 DEBUG = True
@@ -33,6 +34,7 @@ config = configobj.ConfigObj(config_path)
 detector = TagDetector()
 line_detector = LineDetector(int(config["canny_th1"]), int(config["canny_th2"]), int(config["canny_aperture"]))
 dxf_converter = DXFConverter()
+shape_simplifier = ShapeSimplifier(int(config["simplify_length_threshold"]), int(config["simplify_dist_threshold"]))
 
 camera_mat = np.matrix([
     [config["f_x"], 0, config["c_x"]],
@@ -93,9 +95,12 @@ def pipeline(frame):
 
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     frame = cv.Canny(gray, 50, 150, apertureSize = 3)
-    lines_frame, lines = line_detector.detect(frame, gray)
+    lines = line_detector.detect(frame, gray)
 
+    lines, arcs = shape_simplifier.simplify(lines, [])
+    
     if DEBUG:
+        lines_frame = line_detector.draw_lines(frame, lines)
         if lines_frame is not None:
             cv.aruco.drawDetectedMarkers(lines_frame, markers_corners)
             show_image(lines_frame)
