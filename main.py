@@ -7,7 +7,7 @@ from line_detector import LineDetector
 
 # Config
 DEBUG = True
-TAG_PIXELS = 50
+TAG_PIXELS = 100
 TAG_PADDING_PIXELS = 25
 # Constants
 INCH = 2.54 # Inches in cm
@@ -50,9 +50,7 @@ while True:
         break
 
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-
     edges = cv.Canny(gray, 50, 150, apertureSize = 3)
-
     lines = line_detector.detect(frame,gray)
 
     if lines is not None:
@@ -70,14 +68,15 @@ while True:
 
     pixels_per_cm = np.linalg.norm(marker_side_vec) / (6.5 * INCH)
 
-    
+    frame = cv.undistort(frame, camera_mat, dist_coeffs)
 
     flatten_transform = cv.getAffineTransform(marker_corners[:-1], np.matrix([
-        [width - TAG_PIXELS - TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS],
-        [width - TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS],
-        [width - TAG_PADDING_PIXELS, TAG_PADDING_PIXELS]
+        [TAG_PIXELS + TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS], # Lower left
+        [TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS], # Lower right
+        [TAG_PADDING_PIXELS, TAG_PADDING_PIXELS] # Upper right
     ], dtype = np.float32))
-    frame = cv.warpAffine(frame, flatten_transform, (width, height))
+    frame = cv.warpAffine(frame, flatten_transform, (height, width))
+    frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
 
     if DEBUG:
         cv.aruco.drawDetectedMarkers(frame, markers_corners)
