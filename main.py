@@ -2,17 +2,16 @@ import cv2 as cv
 import numpy as np
 import configobj
 import sys
+from dxf_converter import DXFConverter
 from tag_detector import TagDetector
 from line_detector import LineDetector
-import time
 
 # Config
 DEBUG = True
 TAG_PERCENT = 0.20
 PADDING_PERCENT = 0.03
-SUBSAMPLE_PERCENT = 1.0
 # Constants
-INCH = 2.54 # Inches in cm
+INCH = 25.4 # Inches in mm
 
 config_path = None
 file_stream = None
@@ -33,6 +32,7 @@ if config_path == None:
 config = configobj.ConfigObj(config_path)
 detector = TagDetector()
 line_detector = LineDetector()
+dxf_converter = DXFConverter()
 
 camera_mat = np.matrix([
     [config["f_x"], 0, config["c_x"]],
@@ -47,6 +47,7 @@ width = int(config["width"])
 height = int(config["height"])
 tag_pixels = int(width * TAG_PERCENT)
 tag_padding_pixels = int(width * PADDING_PERCENT)
+subsample_percent = float(config["subsample_percent"])
 
 cap = None
 is_image = False
@@ -63,7 +64,7 @@ if not is_image and (cap == None or not cap.isOpened()):
     exit()
 
 def show_image(frame, name="HackIllinois"):
-    subsampled = cv.resize(frame, (int(width * SUBSAMPLE_PERCENT), int(height * SUBSAMPLE_PERCENT)), interpolation=cv.INTER_AREA)
+    subsampled = cv.resize(frame, (int(width * subsample_percent), int(height * subsample_percent)), interpolation=cv.INTER_AREA)
     cv.imshow(name, subsampled)
 
 def pipeline(frame):
@@ -71,12 +72,12 @@ def pipeline(frame):
 
     if len(markers_corners) == 0:
         show_image(frame)
-        return
+        return [], []
 
     marker_corners = markers_corners[0][0]
     marker_side_vec = marker_corners[0] - marker_corners[1]
 
-    pixels_per_cm = np.linalg.norm(marker_side_vec) / (6.5 * INCH)
+    pixels_per_mm = np.linalg.norm(marker_side_vec) / (6.5 * INCH)
 
     frame = cv.undistort(frame, camera_mat, dist_coeffs)
 
@@ -90,15 +91,16 @@ def pipeline(frame):
 
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     frame = cv.Canny(gray, 50, 150, apertureSize = 3)
-    lines = line_detector.detect(frame, gray)
+    lines_frame, lines = line_detector.detect(frame, gray)
 
     if DEBUG:
-        if lines is not None:
-            cv.aruco.drawDetectedMarkers(lines, markers_corners)
-            show_image(lines)
-            return
+        if lines_frame is not None:
+            cv.aruco.drawDetectedMarkers(lines_frame, markers_corners)
+            show_image(lines_frame)
+            return lines, []
 
     show_image(frame)
+    return lines, []
 
 if not is_image:
     while True:
@@ -108,8 +110,15 @@ if not is_image:
             print("Stream cannot be opened.")
             break
 
-        pipeline(frame)
-        if cv.waitKey(1) == ord("q"):
+        lines, arcs = pipeline(frame)
+
+        key = cv.waitKey(1)
+        if key == ord("s"):
+            if len(lines) > 0 or len(arcs) > 0:
+                print("saving file...")
+                dxf_converter.convert(lines, arcs, "test.dxf")
+        elif key == ord("q"):
+            print("closing stream...")
             break
 else:
     frame = cv.imread(file_stream)
