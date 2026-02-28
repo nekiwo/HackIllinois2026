@@ -22,6 +22,6 @@ class TagDetector:
         corners, ids, rejected = self.aruco_detector.detectMarkers(frame)
         return ids, corners
     
-    def estimate_pose(self, corners, camera_mat, dist_coeffs):
+    def estimate_raw_pose(self, corners, camera_mat, dist_coeffs):
         ret, rvecs, tvecs = cv.solvePnP(self.obj_points, corners, camera_mat, dist_coeffs, flags=cv.SOLVEPNP_IPPE_SQUARE)
-        return 0
+        return rvecs, tvecs
