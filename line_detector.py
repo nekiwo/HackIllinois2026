@@ -12,4 +12,4 @@ class LineDetector:
         if lines is None:
             return
         draw_frame = self.fld.drawSegments(frame, lines, linethickness=8)
-        return draw_frame
+        return draw_frame, lines
