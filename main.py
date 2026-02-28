@@ -26,6 +26,9 @@ while True:
     #print(ids)
     
     cv.imshow("HackIllinois", edges)
+    cv.aruco.drawDetectedMarkers(frame, marker_corners)
+
+    #cv.imshow("HackIllinois", frame)
     if cv.waitKey(1) == ord("q"):
         break
 
