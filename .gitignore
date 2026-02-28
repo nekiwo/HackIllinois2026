@@ -11,3 +11,4 @@ __pycache__
 test.py
 images/a6000_calib
 share
+.vscode
