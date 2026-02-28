@@ -7,6 +7,8 @@ from line_detector import LineDetector
 
 # Config
 DEBUG = True
+TAG_PIXELS = 50
+TAG_PADDING_PIXELS = 25
 # Constants
 INCH = 2.54 # Inches in cm
 
@@ -68,10 +70,12 @@ while True:
 
     pixels_per_cm = np.linalg.norm(marker_side_vec) / (6.5 * INCH)
 
+    
+
     flatten_transform = cv.getAffineTransform(marker_corners[:-1], np.matrix([
-        [width / 2 - 50, height / 2 + 50],
-        [width / 2 + 50, height / 2 + 50],
-        [width / 2 + 50, height / 2 - 50]
+        [width - TAG_PIXELS - TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS],
+        [width - TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS],
+        [width - TAG_PADDING_PIXELS, TAG_PADDING_PIXELS]
     ], dtype = np.float32))
     frame = cv.warpAffine(frame, flatten_transform, (width, height))
 
