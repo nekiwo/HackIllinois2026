@@ -5,6 +5,7 @@ import sys
 from dxf_converter import DXFConverter
 from tag_detector import TagDetector
 from line_detector import LineDetector
+from circle_detector import CircleDetector
 
 # Config
 DEBUG = True
@@ -32,6 +33,7 @@ if config_path == None:
 config = configobj.ConfigObj(config_path)
 detector = TagDetector()
 line_detector = LineDetector(int(config["canny_th1"]), int(config["canny_th2"]), int(config["canny_aperture"]))
+circle_detector = CircleDetector()
 dxf_converter = DXFConverter()
 
 camera_mat = np.matrix([
@@ -48,6 +50,7 @@ height = int(config["height"])
 tag_pixels = int(width * TAG_PERCENT)
 tag_padding_pixels = int(width * PADDING_PERCENT)
 subsample_percent = float(config["subsample_percent"])
+line_subsample_percent = float(config["line_subsample_percent"])
 
 cap = None
 is_image = False
@@ -92,17 +95,21 @@ def pipeline(frame):
     print("Frame Transformations \n")
 
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    frame = cv.Canny(gray, 50, 150, apertureSize = 3)
-    lines_frame, lines = line_detector.detect(frame, gray)
+    #frame = cv.Canny(gray, 25, 70, apertureSize = 3)
+    lines_frame, lines = line_detector.detect(frame, gray, line_subsample_percent)
+    circles_frame, circles = circle_detector.detect(frame, gray)
 
     if DEBUG:
         if lines_frame is not None:
             cv.aruco.drawDetectedMarkers(lines_frame, markers_corners)
             show_image(lines_frame)
-            return lines, []
+
+        if circles_frame is not None:
+            cv.aruco.drawDetectedMarkers(circles_frame, markers_corners)
+            show_image(circles_frame, "Circles")
 
     show_image(frame)
-    return lines, []
+    return lines, circles
 
 if not is_image:
     while True:
@@ -112,13 +119,13 @@ if not is_image:
             print("Stream cannot be opened.")
             break
 
-        lines, arcs = pipeline(frame)
+        lines, circles = pipeline(frame)
 
         key = cv.waitKey(1)
         if key == ord("s"):
-            if len(lines) > 0 or len(arcs) > 0:
+            if len(lines) > 0 or len(circles) > 0:
                 print("saving file...")
-                dxf_converter.convert(lines, arcs, "test.dxf")
+                dxf_converter.convert(lines, circles, "test.dxf")
         elif key == ord("q"):
             print("closing stream...")
             break

@@ -5,7 +5,7 @@ class DXFConverter:
     def __init__(self):
         pass
 
-    def convert(self, lines, arcs, output_file):
+    def convert(self, lines, circles, output_file):
         doc = ezdxf.new("R2000")
         doc.units = ezdxf.units.MM
         dxf = doc.modelspace()
