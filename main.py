@@ -8,8 +8,9 @@ import time
 
 # Config
 DEBUG = True
-TAG_PIXELS = 100
-TAG_PADDING_PIXELS = 25
+TAG_PERCENT = 0.20
+PADDING_PERCENT = 0.03
+SUBSAMPLE_PERCENT = 1.0
 # Constants
 INCH = 2.54 # Inches in cm
 
@@ -44,6 +45,8 @@ dist_coeffs = np.matrix([
 
 width = int(config["width"])
 height = int(config["height"])
+tag_pixels = int(width * TAG_PERCENT)
+tag_padding_pixels = int(width * PADDING_PERCENT)
 
 cap = None
 is_image = False
@@ -60,7 +63,8 @@ if not is_image and (cap == None or not cap.isOpened()):
     exit()
 
 def show_image(frame, name="HackIllinois"):
-    cv.imshow(name, frame)
+    subsampled = cv.resize(frame, (int(width * SUBSAMPLE_PERCENT), int(height * SUBSAMPLE_PERCENT)), interpolation=cv.INTER_AREA)
+    cv.imshow(name, subsampled)
 
 def pipeline(frame):
     ids, markers_corners = detector.detect(frame)
@@ -77,15 +81,15 @@ def pipeline(frame):
     frame = cv.undistort(frame, camera_mat, dist_coeffs)
 
     flatten_transform = cv.getAffineTransform(marker_corners[:-1], np.matrix([
-        [TAG_PIXELS + TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS], # Lower left
-        [TAG_PADDING_PIXELS, TAG_PIXELS + TAG_PADDING_PIXELS], # Lower right
-        [TAG_PADDING_PIXELS, TAG_PADDING_PIXELS] # Upper right
+        [tag_pixels + tag_padding_pixels, tag_pixels + tag_padding_pixels], # Lower left
+        [tag_padding_pixels, tag_pixels + tag_padding_pixels], # Lower right
+        [tag_padding_pixels, tag_padding_pixels] # Upper right
     ], dtype = np.float32))
     frame = cv.warpAffine(frame, flatten_transform, (height, width))
     frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
 
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    # edges = cv.Canny(gray, 50, 150, apertureSize = 3)
+    frame = cv.Canny(gray, 50, 150, apertureSize = 3)
     lines = line_detector.detect(frame, gray)
 
     if DEBUG:
