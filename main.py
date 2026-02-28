@@ -20,10 +20,12 @@ while True:
 
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-    ids, marker_corners = detector.detect(frame)
-    print(ids)
+    edges = cv.Canny(gray,50,150,apertureSize = 3)
 
-    cv.imshow("HackIllinois", frame)
+    #ids, marker_corners = detector.detect(frame)
+    #print(ids)
+    
+    cv.imshow("HackIllinois", edges)
     if cv.waitKey(1) == ord("q"):
         break
 
