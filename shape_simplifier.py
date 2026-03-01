@@ -65,7 +65,6 @@ class ShapeSimplifier:
             line_i += 1
 
         circle_i = 0
-        circles = np.uint16(np.around(circles))[0]
         while circle_i < len(circles):
             origin = [circles[circle_i][0], circles[circle_i][1]]
             if origin[0] >= x_bound and origin[1] <= y_bound:

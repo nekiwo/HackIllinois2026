@@ -7,6 +7,7 @@ from tag_detector import TagDetector
 from line_detector import LineDetector
 from circle_detector import CircleDetector
 from shape_simplifier import ShapeSimplifier
+from arc_processor import ArcProcessor
 
 # Config
 DEBUG = True
@@ -37,6 +38,7 @@ line_detector = LineDetector(int(config["canny_th1"]), int(config["canny_th2"]),
 circle_detector = CircleDetector()
 dxf_converter = DXFConverter()
 shape_simplifier = ShapeSimplifier(int(config["simplify_length_threshold"]), int(config["simplify_dist_threshold"]), int(config["circle_clean_threshold"]))
+arc_processor = ArcProcessor()
 
 camera_mat = np.matrix([
     [config["f_x"], 0, config["c_x"]],
@@ -98,22 +100,28 @@ def pipeline(frame):
 
     print("Frame Transformations \n")
 
-    frame = frame * contrast_multiplier + brightness_coeff
-    frame = cv.normalize(frame, frame, 0, 255, cv.NORM_MINMAX)
+    #frame = frame * contrast_multiplier + brightness_coeff
+    #frame = cv.normalize(frame, frame, 0, 255, cv.NORM_MINMAX)
+    #frame = cv.bilateralFilter(frame,9,75,75)
     frame = frame.astype(np.uint8)
 
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    # frame = cv.Canny(gray, int(config["canny_th1"]), int(config["canny_th2"]), L2gradient=True, apertureSize=int(config["canny_aperture"]))
+    edges = cv.Canny(gray, int(config["canny_th1"]), int(config["canny_th2"]), L2gradient=True, apertureSize=int(config["canny_aperture"]))
+    #show_image(edges, "Canny")
+
     lines = line_detector.detect(gray, line_subsample_percent)
     circles = circle_detector.detect(gray)
 
+    output_circles, arcs = arc_processor.process(edges, circles)
+
     lines = shape_simplifier.simplify(lines)
-    lines, circles = shape_simplifier.remove_apriltag(lines, circles, width - tag_pixels - tag_padding_pixels * 5, tag_pixels + tag_padding_pixels * 5)
+    #lines, output_circles = shape_simplifier.remove_apriltag(lines, output_circles, width - tag_pixels - tag_padding_pixels * 5, tag_pixels + tag_padding_pixels * 5)
     lines = shape_simplifier.clean_circles(lines, circles)
 
     if DEBUG:
         frame = line_detector.draw_lines(frame, lines)
-        frame = circle_detector.draw(frame, circles)
+        frame = circle_detector.draw(frame, output_circles)
+        frame = arc_processor.draw(frame, arcs)
         frame = cv.aruco.drawDetectedMarkers(frame, markers_corners)
 
     show_image(frame)

@@ -1,8 +1,8 @@
 import cv2 as cv
 import numpy as np
 
-MIN_RADIUS=1
-MAX_RADIUS=80
+MIN_RADIUS=15
+MAX_RADIUS=1000
 
 class CircleDetector:
     def detect(self, gray, num_iterations=4):
@@ -24,11 +24,10 @@ class CircleDetector:
         return all_circles
     
     def draw(self, frame, circles):
+        print(circles)
         if circles is not None:
-            circles = np.uint16(np.around(circles))
-            for i in circles[0, :]:
-                center = (i[0], i[1])
-                cv.circle(frame, center, 1, (0, 100, 100), 3)
-                radius = i[2]
-                cv.circle(frame, center, radius, (255, 0, 255), 3)
+#            circles = np.uint16(np.around(circles))
+            for i in circles:
+                print(i)
+                cv.circle(frame, (i[0], i[1]), i[2], (255, 0, 255), 3)
         return frame
