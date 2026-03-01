@@ -3,10 +3,12 @@ import numpy as np
 class ShapeSimplifier:
     length_threshold = 0
     dist_threshold = 0
+    circle_clean_threshold = 0
 
-    def __init__(self, length_threshold, dist_threshold):
+    def __init__(self, length_threshold, dist_threshold, circle_clean_threshold):
         self.length_threshold = length_threshold
         self.dist_threshold = dist_threshold
+        self.circle_clean_threshold = circle_clean_threshold
 
     def get_p(self, line, p_i):
         return np.array([line[0][2 * p_i + 0], line[0][2 * p_i + 1]])
@@ -74,3 +76,24 @@ class ShapeSimplifier:
 
         circles = [circles]
         return lines, circles
+    
+    def clean_circles(self, lines, circles):
+        circles = np.uint16(np.around(circles))[0]
+        line_i = 0
+        while line_i < len(lines):
+            line = lines[line_i]
+            is_deleted = False
+            for circle in circles:
+                center = [circle[0], circle[1]]
+                radius = circle[2]
+                point1 = self.get_p(line, 0)
+                point2 = self.get_p(line, 1)
+                if np.linalg.norm(point1 - center) <= radius + self.circle_clean_threshold or np.linalg.norm(point2 - center) <= radius + self.circle_clean_threshold:
+                    lines = np.delete(lines, line_i, axis=0)
+                    line_i -= 1
+                    is_deleted = True
+                    break
+            if is_deleted:
+                continue
+            line_i += 1
+        return lines

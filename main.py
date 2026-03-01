@@ -36,7 +36,7 @@ detector = TagDetector()
 line_detector = LineDetector(int(config["canny_th1"]), int(config["canny_th2"]), int(config["canny_aperture"]))
 circle_detector = CircleDetector()
 dxf_converter = DXFConverter()
-shape_simplifier = ShapeSimplifier(int(config["simplify_length_threshold"]), int(config["simplify_dist_threshold"]))
+shape_simplifier = ShapeSimplifier(int(config["simplify_length_threshold"]), int(config["simplify_dist_threshold"]), int(config["circle_clean_threshold"]))
 
 camera_mat = np.matrix([
     [config["f_x"], 0, config["c_x"]],
@@ -109,7 +109,8 @@ def pipeline(frame):
 
     lines = shape_simplifier.simplify(lines)
     lines, circles = shape_simplifier.remove_apriltag(lines, circles, width - tag_pixels - tag_padding_pixels * 5, tag_pixels + tag_padding_pixels * 5)
-    
+    lines = shape_simplifier.clean_circles(lines, circles)
+
     if DEBUG:
         frame = line_detector.draw_lines(frame, lines)
         frame = circle_detector.draw(frame, circles)
