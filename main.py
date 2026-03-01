@@ -27,7 +27,6 @@ if len(sys.argv) > 2:
         elif arg == "--file-stream" or arg == "-f":
             file_stream = arg_next
 
-
 if config_path == None:
     print("Specify the `--config` flag. Exiting...")
     exit()
@@ -109,6 +108,7 @@ def pipeline(frame):
     circles = circle_detector.detect(gray)
 
     lines = shape_simplifier.simplify(lines)
+    lines, circles = shape_simplifier.remove_apriltag(lines, circles, width - tag_pixels - tag_padding_pixels * 5, tag_pixels + tag_padding_pixels * 5)
     
     if DEBUG:
         frame = line_detector.draw_lines(frame, lines)

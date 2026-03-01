@@ -51,3 +51,26 @@ class ShapeSimplifier:
                 break
 
         return lines
+    
+    def remove_apriltag(self, lines, circles, x_bound, y_bound):
+        line_i = 0
+        while line_i < len(lines):
+            point = self.get_p(lines[line_i], 0)
+            if point[0] >= x_bound and point[1] <= y_bound:
+                lines = np.delete(lines, line_i, axis=0)
+                line_i -= 1
+                continue
+            line_i += 1
+
+        circle_i = 0
+        circles = np.uint16(np.around(circles))[0]
+        while circle_i < len(circles):
+            origin = [circles[circle_i][0], circles[circle_i][1]]
+            if origin[0] >= x_bound and origin[1] <= y_bound:
+                circles = np.delete(circles, circle_i, axis=0)
+                circle_i -= 1
+                continue
+            circle_i += 1
+
+        circles = [circles]
+        return lines, circles
