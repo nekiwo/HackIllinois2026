@@ -99,12 +99,13 @@ def pipeline(frame):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     #frame = cv.Canny(gray, 25, 70, apertureSize = 3)
     lines = line_detector.detect(frame, gray, line_subsample_percent)
-    circles = circle_detector.detect(frame, gray)
+    circles = circle_detector.detect(gray)
 
     lines = shape_simplifier.simplify(lines)
     
     if DEBUG:
         lines_frame = line_detector.draw_lines(frame, lines)
+        circles_frame = circle_detector.draw(frame, circles)
         if lines_frame is not None:
             cv.aruco.drawDetectedMarkers(lines_frame, markers_corners)
             show_image(lines_frame)
