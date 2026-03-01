@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 
 MIN_RADIUS=1
-MAX_RADIUS=20
+MAX_RADIUS=80
 
 class CircleDetector:
     def detect(self, gray, num_iterations=4):
@@ -11,7 +11,7 @@ class CircleDetector:
         for i in range(num_iterations):
             rows = gray.shape[0]
             circles = cv.HoughCircles(gray, cv.HOUGH_GRADIENT, 1, rows / 16,
-                                param1=100, param2=20, minRadius=int(group_size*i + MIN_RADIUS), 
+                                param1=100, param2=15, minRadius=int(group_size*i + MIN_RADIUS), 
                                 maxRadius=int(group_size*(i+1) + MIN_RADIUS))
             if circles is None:
                 continue
