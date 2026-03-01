@@ -1,5 +1,6 @@
 import ezdxf
 from ezdxf.addons import r12writer
+import numpy as np
 
 class DXFConverter:
     def __init__(self):
@@ -10,8 +11,11 @@ class DXFConverter:
         doc.units = ezdxf.units.MM
         dxf = doc.modelspace()
 
-        dxf.add_line((0, 0), (17, 23))
-        dxf.add_circle((0, 0), radius=2)
-        dxf.add_arc((0, 0), radius=3, start_angle=0, end_angle=175)
+        for line in lines:
+            dxf.add_line((line[0][0], line[0][1]), (line[0][2], line[0][3]))
+
+        circles = np.uint16(np.around(circles))
+        for circle in circles[0, :]:
+            dxf.add_circle((circle[0], circle[1]), circle[2])
 
         doc.saveas(output_file)

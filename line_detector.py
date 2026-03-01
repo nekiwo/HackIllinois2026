@@ -10,7 +10,7 @@ class LineDetector:
     def draw_lines(self, frame, lines):
         return self.fld.drawSegments(frame, lines, linethickness=8)
     
-    def detect(self, frame, gray, subsample_percent):
+    def detect(self, gray, subsample_percent):
         resize = cv.resize(gray, None, fx=subsample_percent, fy=subsample_percent, interpolation=cv.INTER_AREA)
         #blurred = cv.GaussianBlur(resize, (3, 3), 0)
         lines = self.fld.detect(resize)

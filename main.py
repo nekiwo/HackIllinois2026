@@ -12,6 +12,7 @@ from shape_simplifier import ShapeSimplifier
 DEBUG = True
 TAG_PERCENT = 0.20
 PADDING_PERCENT = 0.03
+EXPORT_FILENAME = "test.dxf"
 # Constants
 INCH = 25.4 # Inches in mm
 
@@ -53,6 +54,8 @@ tag_pixels = int(width * TAG_PERCENT)
 tag_padding_pixels = int(width * PADDING_PERCENT)
 subsample_percent = float(config["subsample_percent"])
 line_subsample_percent = float(config["line_subsample_percent"])
+contrast_multiplier = float(config["contrast_multiplier"])
+brightness_coeff = float(config["brightness_coeff"])
 
 cap = None
 is_image = False
@@ -96,23 +99,21 @@ def pipeline(frame):
 
     print("Frame Transformations \n")
 
+    frame = frame * contrast_multiplier + brightness_coeff
+    frame = cv.normalize(frame, frame, 0, 255, cv.NORM_MINMAX)
+    frame = frame.astype(np.uint8)
+
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    #frame = cv.Canny(gray, 25, 70, apertureSize = 3)
-    lines = line_detector.detect(frame, gray, line_subsample_percent)
+    # frame = cv.Canny(gray, int(config["canny_th1"]), int(config["canny_th2"]), L2gradient=True, apertureSize=int(config["canny_aperture"]))
+    lines = line_detector.detect(gray, line_subsample_percent)
     circles = circle_detector.detect(gray)
 
     lines = shape_simplifier.simplify(lines)
     
     if DEBUG:
-        lines_frame = line_detector.draw_lines(frame, lines)
-        circles_frame = circle_detector.draw(frame, circles)
-        if lines_frame is not None:
-            cv.aruco.drawDetectedMarkers(lines_frame, markers_corners)
-            show_image(lines_frame)
-
-        if circles_frame is not None:
-            cv.aruco.drawDetectedMarkers(circles_frame, markers_corners)
-            show_image(circles_frame, "Circles")
+        frame = line_detector.draw_lines(frame, lines)
+        frame = circle_detector.draw(frame, circles)
+        frame = cv.aruco.drawDetectedMarkers(frame, markers_corners)
 
     show_image(frame)
     return lines, circles
@@ -131,13 +132,14 @@ if not is_image:
         if key == ord("s"):
             if len(lines) > 0 or len(circles) > 0:
                 print("saving file...")
-                dxf_converter.convert(lines, circles, "test.dxf")
+                dxf_converter.convert(lines, circles, EXPORT_FILENAME)
         elif key == ord("q"):
             print("closing stream...")
             break
 else:
     frame = cv.imread(file_stream)
-    pipeline(frame)
+    lines, circles = pipeline(frame)
+    dxf_converter.convert(lines, circles, EXPORT_FILENAME)
     while cv.waitKey(1) != ord("q"):
         continue
 
