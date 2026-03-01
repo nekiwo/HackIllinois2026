@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>BLUEPRINTS</title>
+        <link rel="stylesheet" href="/index.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div class="center-box">
+            <div class="center-box" id="top-box">
+                <h1>BLUE<br>PRINTS<br>.TECH</h1>
+            </div>
+            <h3>Uploaded!</h3>
+            <div id="downloading">Downloading DXF...</div>
+        </div>
+        <div id="footer">
+            <div id="links">
+                <a href="#">DevPost</a>
+                <a href="https://github.com/nekiwo/HackIllinois2026">GitHub</a>
+                <a href="https://hackillinois.org/">HackIllinois</a>
+            </div>
+        </div>
+        <script>
+            window.location = "get_photo/" + document.cookie.split("=")[1]
+            setTimeout(() => {
+                document.getElementById("downloading").style.display = "None"
+            }, 8000);
+        </script>
+    </body>
+</html>

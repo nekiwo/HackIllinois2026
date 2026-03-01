@@ -28,7 +28,7 @@ class CircleDetector:
             circles = np.uint16(np.around(circles))
             for i in circles[0, :]:
                 center = (i[0], i[1])
-                cv.circle(frame, center, 1, (0, 100, 100), 3)
+                cv.circle(frame, center, 1, (0, 100, 100), 8)
                 radius = i[2]
-                cv.circle(frame, center, radius, (255, 0, 255), 3)
+                cv.circle(frame, center, radius, (255, 0, 255), 8)
         return frame

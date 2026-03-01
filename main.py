@@ -16,16 +16,20 @@ EXPORT_FILENAME = "test.dxf"
 # Constants
 INCH = 25.4 # Inches in mm
 
-config_path = None
+config_path = "sony_a6000_photo.cfg"
 file_stream = None
-if len(sys.argv) > 2:
-    for arg_i in range(len(sys.argv) - 1):
-        arg = sys.argv[arg_i]
-        arg_next = sys.argv[arg_i + 1]
-        if arg == "--config" or arg == "-c":
-            config_path = arg_next
-        elif arg == "--file-stream" or arg == "-f":
-            file_stream = arg_next
+
+if __name__ == "__main__":
+    argc = len(sys.argv)
+    if argc > 2:
+        for arg_i in range(argc):
+            arg = sys.argv[arg_i]
+            if arg_i <= argc - 2:
+                arg_next = sys.argv[arg_i + 1]
+                if arg == "--config" or arg == "-c":
+                    config_path = arg_next
+                elif arg == "--file-stream" or arg == "-f":
+                    file_stream = arg_next
 
 if config_path == None:
     print("Specify the `--config` flag. Exiting...")
@@ -58,33 +62,33 @@ brightness_coeff = float(config["brightness_coeff"])
 
 cap = None
 is_image = False
-if file_stream == None:
-    cap = cv.VideoCapture(0)
-else:
-    if file_stream.find(".jpg") != -1 or file_stream.find(".png") != -1:
-        is_image = True
-    else:
-        cap = cv.VideoCapture(file_stream)
 
-if not is_image and (cap == None or not cap.isOpened()):
-    print("Error starting stream. Exiting...")
-    exit()
+if __name__ == "__main__":
+    if file_stream == None:
+        cap = cv.VideoCapture(0)
+    else:
+        if file_stream.find(".jpg") != -1 or file_stream.find(".png") != -1:
+            is_image = True
+        else:
+            cap = cv.VideoCapture(file_stream)
+
+    if not is_image and (cap == None or not cap.isOpened()):
+        print("Error starting stream. Exiting...")
+        exit()
 
 def show_image(frame, name="HackIllinois"):
     subsampled = cv.resize(frame, (int(width * subsample_percent), int(height * subsample_percent)), interpolation=cv.INTER_AREA)
     cv.imshow(name, subsampled)
 
-def pipeline(frame):
+def pipeline(frame, show=True):
     ids, markers_corners = detector.detect(frame)
-    if len(markers_corners) == 0:
-        show_image(frame)
-        return [], []
+    if show:
+        if len(markers_corners) == 0:
+            show_image(frame)
+            return [], []
 
     print("Detected Tag \n")
     marker_corners = markers_corners[0][0]
-    marker_side_vec = marker_corners[0] - marker_corners[1]
-
-    pixels_per_mm = np.linalg.norm(marker_side_vec) / (6.5 * INCH)
 
     frame = cv.undistort(frame, camera_mat, dist_coeffs)
 
@@ -95,6 +99,8 @@ def pipeline(frame):
     ], dtype = np.float32))
     frame = cv.warpAffine(frame, flatten_transform, (height, width))
     frame = cv.rotate(frame, cv.ROTATE_90_CLOCKWISE)
+
+    pixels_per_mm = tag_pixels / (0.25 * 6.5 * INCH)
 
     print("Frame Transformations \n")
 
@@ -107,42 +113,53 @@ def pipeline(frame):
     lines = line_detector.detect(gray, line_subsample_percent)
     circles = circle_detector.detect(gray)
 
+    lines, circles = shape_simplifier.remove_apriltag(lines, circles, width - tag_pixels - tag_padding_pixels * 3, tag_pixels + tag_padding_pixels * 3)
     lines = shape_simplifier.simplify(lines)
-    lines, circles = shape_simplifier.remove_apriltag(lines, circles, width - tag_pixels - tag_padding_pixels * 5, tag_pixels + tag_padding_pixels * 5)
     lines = shape_simplifier.clean_circles(lines, circles)
 
     if DEBUG:
         frame = line_detector.draw_lines(frame, lines)
         frame = circle_detector.draw(frame, circles)
-        frame = cv.aruco.drawDetectedMarkers(frame, markers_corners)
+        # frame = cv.aruco.drawDetectedMarkers(frame, markers_corners)
 
-    show_image(frame)
+    if show:
+        show_image(frame)
+
+    if lines is not None and len(lines) > 0:
+        lines = np.array(lines) * (1.0 / pixels_per_mm)
+    if circles is not None and len(circles) > 0:
+        circles = np.array(circles) * (1.0 / pixels_per_mm)
+
     return lines, circles
 
-if not is_image:
-    while True:
-        ret, frame = cap.read()
-    
-        if not ret:
-            print("Stream cannot be opened.")
-            break
+def start_standalone():
+    if not is_image:
+        while True:
+            ret, frame = cap.read()
+        
+            if not ret:
+                print("Stream cannot be opened.")
+                break
 
+            lines, circles = pipeline(frame)
+
+            key = cv.waitKey(1)
+            if key == ord("s"):
+                if len(lines) > 0 or len(circles) > 0:
+                    print("saving file...")
+                    dxf_converter.convert(lines, circles, EXPORT_FILENAME)
+            elif key == ord("q"):
+                print("closing stream...")
+                break
+    else:
+        frame = cv.imread(file_stream)
         lines, circles = pipeline(frame)
+        dxf_converter.convert(lines, circles, EXPORT_FILENAME)
+        while cv.waitKey(1) != ord("q"):
+            continue
 
-        key = cv.waitKey(1)
-        if key == ord("s"):
-            if len(lines) > 0 or len(circles) > 0:
-                print("saving file...")
-                dxf_converter.convert(lines, circles, EXPORT_FILENAME)
-        elif key == ord("q"):
-            print("closing stream...")
-            break
-else:
-    frame = cv.imread(file_stream)
-    lines, circles = pipeline(frame)
-    dxf_converter.convert(lines, circles, EXPORT_FILENAME)
-    while cv.waitKey(1) != ord("q"):
-        continue
+    cap.release()
+    cv.destroyAllWindows()
 
-cap.release()
-cv.destroyAllWindows()
+if __name__ == "__main__":
+    start_standalone()
